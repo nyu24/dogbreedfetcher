@@ -21,13 +21,12 @@ public class DogApiBreedFetcher implements BreedFetcher {
      * Fetch the list of sub breeds for the given breed from the dog.ceo API.
      * @param breed the breed to fetch sub breeds for
      * @return list of sub breeds for the given breed
-     * @throws BreedNotFoundException if the breed does not exist (or if the API call fails for any reason)
      */
     @Override
-    public List<String> getSubBreeds(String breed) {
+    public List<String> getSubBreeds(String breed) throws BreedNotFoundException{
         //obtaining request from url
         final Request request = new Request.Builder()
-                .url("https://dog.ceo/api/breed/" + breed +"/list")
+                .url("https://dog.ceo/api/breed/" + breed + "/list")
                 .build();
         final JSONObject responseBody;
 
@@ -35,18 +34,20 @@ public class DogApiBreedFetcher implements BreedFetcher {
         try (Response response = client.newCall(request).execute()) {
             assert response.body() != null;
             responseBody = new JSONObject(response.body().string());
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        //translating JSONArray to ArrayList
-        ArrayList<String> subBreeds = new ArrayList<>();
-        int value = responseBody.getJSONArray("message").length();
 
-        for (int i=0; i < value; i++) {
-            subBreeds.add(responseBody.getJSONArray("message").getString(i));
+        if (responseBody.get("status").toString().equals("error")) {
+            throw new BreedNotFoundException(breed);
+        } else {
+            //translating JSONArray to ArrayList
+            ArrayList<String> subBreeds = new ArrayList<>();
+            int value = responseBody.getJSONArray("message").length();
+            for (int i = 0; i < value; i++) {
+                subBreeds.add(responseBody.getJSONArray("message").getString(i));
+            }
+            return subBreeds;
         }
-
-        return subBreeds;
     }
 }
